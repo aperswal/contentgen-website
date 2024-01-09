@@ -28,6 +28,6 @@ export const database = {
 };
 
 // Export storage
-export { auth, createUserWithEmailAndPassword, onAuthStateChanged, storage };
+export { auth, createUserWithEmailAndPassword, onAuthStateChanged, storage, firestore };
 
 export default app;

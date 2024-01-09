@@ -5,10 +5,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { storage, database } from '../../firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { ROOT_FOLDER } from '../../hooks/useFolder';
-import { addDoc } from 'firebase/firestore';
+import { query, collection, where, getDocs, updateDoc, addDoc } from 'firebase/firestore';
 import { v4 as uuidV4 } from 'uuid';
 import ReactDOM from 'react-dom';
 import { ProgressBar, Toast } from 'react-bootstrap';
+import { firestore } from '../../firebase';
 
 export default function AddFileButton({ currentFolder }) {
     const [uploadingFiles, setUploadingFiles] = useState([]);
@@ -64,20 +65,32 @@ export default function AddFileButton({ currentFolder }) {
             () => {
                 setUploadingFiles(prevUploadingFiles => prevUploadingFiles.filter(uploadFile => uploadFile.id !== id));
                 getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                    const fileMetadata = {
-                        url: downloadURL,
-                        name: file.name,
-                        createdAt: new Date(),
-                        folderId: currentFolder.id,
-                        userId: currentUser.uid,
-                    };
-
-                    return addDoc(database.files, fileMetadata);
+                    const filesQuery = query(
+                        database.files, 
+                        where("name", "==", file.name),
+                        where("userId", "==", currentUser.uid),
+                        where("folderId", "==", currentFolder.id)
+                    );
+    
+                    getDocs(filesQuery).then(existingFiles => {
+                        if (!existingFiles.empty) {
+                            const existingFile = existingFiles.docs[0];
+                            const fileRef = existingFile.ref;
+                            updateDoc(fileRef, { url: downloadURL });
+                        } else {
+                            addDoc(collection(firestore, 'files'), {
+                                url: downloadURL,
+                                name: file.name,
+                                createdAt: new Date(),
+                                folderId: currentFolder.id,
+                                userId: currentUser.uid,
+                            });
+                        }
+                    });
                 });
             }
         );
     }
-
     return (
         <>
             <label className="btn btn-outline-success btn-sm m-0 mr-2">
@@ -102,7 +115,13 @@ export default function AddFileButton({ currentFolder }) {
                             console.log('File Progress:', file.progress, 'File Error:', file.error);
 
                             return (
-                                <Toast key={file.id}>
+                                <Toast key={file.id} onClose = {() => {
+                                    setUploadingFiles(prevUploadingFiles => {
+                                        return prevUploadingFiles.filter(uploadFile => {
+                                            return uploadFile.id !== file.id
+                                        })
+                                    })
+                                }}>
                                     <Toast.Header closeButton={file.error} className="text-truncate w-100 d-block">
                                         {file.name}
                                     </Toast.Header>
