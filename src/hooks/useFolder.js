@@ -46,6 +46,8 @@ export function useFolder(folderId = null, folder = null) {
     const { currentUser } = useAuth();
 
     useEffect(() => {
+        console.log("Current User:", currentUser); // Check current user state
+        console.log("Folder ID in useFolder:", folderId); // Log folder ID
         dispatch({ type: ACTIONS.SELECT_FOLDER, payload: { folderId, folder } });
     }, [folderId, folder]);
 
@@ -69,26 +71,29 @@ export function useFolder(folderId = null, folder = null) {
     }, [folderId]);
 
     useEffect(() => {
-        if (!currentUser || folderId == null) {
+        if (!currentUser) {
             return;
         }
-
-        const q = query(
-            database.folders,
-            where("parentId", "==", folderId),
-            where("userId", "==", currentUser.uid),
-            orderBy("createdAt")
-        );
-
-        const unsubscribe = onSnapshot(q, snapshot => {
+    
+        let queryRef = database.folders;
+        if (folderId != null) {
+            queryRef = query(database.folders, where("parentId", "==", folderId));
+        } else {
+            queryRef = query(database.folders, where("parentId", "==", null));
+        }
+    
+        queryRef = query(queryRef, where("userId", "==", currentUser.uid));
+    
+        const unsubscribe = onSnapshot(queryRef, snapshot => {
             dispatch({
                 type: ACTIONS.SET_CHILD_FOLDERS,
                 payload: { childFolders: snapshot.docs.map(database.formatDoc) }
             });
         });
-
-        return () => unsubscribe(); 
+    
+        return () => unsubscribe();
     }, [folderId, currentUser]);
+    
 
     return state;
 }
