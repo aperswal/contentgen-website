@@ -27,7 +27,6 @@ function App() {
                 <Dashboard />
               </PrivateRoute>} />
 
-
               <Route path="/user" element={
                 <PrivateRoute>
                   <Profile />

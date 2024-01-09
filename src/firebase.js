@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged} from 'firebase/auth';
-import { collection, getFirestore, addDoc } from 'firebase/firestore';
+import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
+import { collection, getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage'; // Import getStorage
 
 const firebaseConfig = {
     apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -13,8 +14,10 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
 const auth = getAuth(app);
 const firestore = getFirestore(app);
+const storage = getStorage(app); // Initialize storage
 
 export const database = {
     folders: collection(firestore, 'folders'),
@@ -24,5 +27,7 @@ export const database = {
     }
 };
 
-export { auth, createUserWithEmailAndPassword, onAuthStateChanged };
+// Export storage
+export { auth, createUserWithEmailAndPassword, onAuthStateChanged, storage };
+
 export default app;

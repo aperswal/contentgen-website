@@ -4,18 +4,26 @@ import {Container} from "react-bootstrap"
 import AddFolderButton from './AddFolderButton'
 import { useFolder } from '../../hooks/useFolder'
 import Folder from './Folder'
-import {useParams} from "react-router-dom"
+import {useParams, useLocation} from "react-router-dom"
+import FolderBreadcrumbs from './FolderBreadcrumbs'
+import AddFileButton from './AddFileButton'
+import File from './File'
 
 export default function Dashboard() {
     const { folderId } = useParams(); // Extract folderId from params
-    console.log("Folder ID from URL:", folderId); // Log the folder ID
-
-    const { folder, childFolders } = useFolder(folderId);
+    const { folder, childFolders, childFiles } = useFolder(folderId);
     
     return (
     <>
         <Navbar/>
-        <Container fluid> <AddFolderButton currentFolder = {folder}/>
+        <Container fluid> 
+        <div className = "d-flex align-items-center">
+        <FolderBreadcrumbs currentFolder ={folder} />
+        <div style={{ marginRight: '8px' }}>
+        <AddFileButton currentFolder={folder} />
+        </div>
+        <AddFolderButton currentFolder={folder} />
+        </div>
         {childFolders.length > 0 && (
             <div className="d-flex flex-wrap">
                 {childFolders.map((childFolder) => (
@@ -25,6 +33,20 @@ export default function Dashboard() {
                     className = "p-2"
                     >
                         <Folder folder = {childFolder} />
+                    </div>
+                ))}
+                </div>
+            )}
+            {childFolders.length > 0 && childFiles.length > 0 && <hr />}
+        {childFiles.length > 0 && (
+            <div className="d-flex flex-wrap">
+                {childFiles.map((childFile) => (
+                    <div 
+                    key = {childFile.id} 
+                    style = {{maxWidth: '250px' }}
+                    className = "p-2"
+                    >
+                        <File file = {childFile} />
                     </div>
                 ))}
                 </div>

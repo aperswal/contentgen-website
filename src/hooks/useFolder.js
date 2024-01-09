@@ -6,10 +6,11 @@ import { useAuth } from '../contexts/AuthContext';
 const ACTIONS = {
     SELECT_FOLDER: 'select-folder',
     UPDATE_FOLDER: 'update-folder',
-    SET_CHILD_FOLDERS: 'set-child-folders'
+    SET_CHILD_FOLDERS: 'set-child-folders',
+    SET_CHILD_FILES: 'set-child-files'
 }
 
-const ROOT_FOLDER = {name: 'Home', id: null, path: []}
+export const ROOT_FOLDER = {name:'Home', id: null, path: []}
 
 function reducer(state, action) {
     switch (action.type) {
@@ -30,6 +31,11 @@ function reducer(state, action) {
                 ...state,
                 childFolders: action.payload.childFolders,
             };
+        case ACTIONS.SET_CHILD_FILES:
+            return {
+                ...state,
+                childFiles: action.payload.childFiles,
+            };
         default:
             return state;
     }
@@ -46,8 +52,8 @@ export function useFolder(folderId = null, folder = null) {
     const { currentUser } = useAuth();
 
     useEffect(() => {
-        console.log("Current User:", currentUser); // Check current user state
-        console.log("Folder ID in useFolder:", folderId); // Log folder ID
+        console.log("Current User:", currentUser); 
+        console.log("Folder ID in useFolder:", folderId); 
         dispatch({ type: ACTIONS.SELECT_FOLDER, payload: { folderId, folder } });
     }, [folderId, folder]);
 
@@ -75,15 +81,22 @@ export function useFolder(folderId = null, folder = null) {
             return;
         }
     
-        let queryRef = database.folders;
+        let queryRef;
         if (folderId != null) {
-            queryRef = query(database.folders, where("parentId", "==", folderId));
+            queryRef = query(
+                database.folders, 
+                where("parentId", "==", folderId),
+                where("userId", "==", currentUser.uid),
+                orderBy("createdAt")
+            );
         } else {
-            queryRef = query(database.folders, where("parentId", "==", null));
+            queryRef = query(
+                database.folders, 
+                where("parentId", "==", null),
+                where("userId", "==", currentUser.uid),
+                orderBy("createdAt")
+            );
         }
-    
-        queryRef = query(queryRef, where("userId", "==", currentUser.uid));
-    
         const unsubscribe = onSnapshot(queryRef, snapshot => {
             dispatch({
                 type: ACTIONS.SET_CHILD_FOLDERS,
@@ -94,6 +107,36 @@ export function useFolder(folderId = null, folder = null) {
         return () => unsubscribe();
     }, [folderId, currentUser]);
     
+    useEffect(() => {
+        if (!currentUser) {
+            return;
+        }
+    
+        let queryRef;
+        if (folderId != null) {
+            queryRef = query(
+                database.files, 
+                where("folderId", "==", folderId),
+                where("userId", "==", currentUser.uid),
+                orderBy("createdAt")
+            );
+        } else {
+            queryRef = query(
+                database.files, 
+                where("folderId", "==", null),
+                where("userId", "==", currentUser.uid),
+                orderBy("createdAt")
+            );
+        }
+        const unsubscribe = onSnapshot(queryRef, snapshot => {
+            dispatch({
+                type: ACTIONS.SET_CHILD_FILES,
+                payload: { childFiles: snapshot.docs.map(database.formatDoc) }
+            });
+        });
+    
+        return () => unsubscribe();
+    }, [folderId, currentUser]);
 
     return state;
 }
